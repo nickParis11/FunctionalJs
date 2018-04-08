@@ -510,3 +510,155 @@ function m(value,source) {
 	};
 }
 
+function addm(obj1,obj2) {
+	return {
+		value : obj1.value + obj2.value, 
+		source : "("+obj1.source+"+"+obj2.source+")"
+	}
+}
+
+function addmRec(obj1,obj2) {
+	return m(obj1.value + obj2.value,"("+obj1.source+"+"+obj2.source+")")
+}
+
+log('addm ************');
+log(JSON.stringify(addm(m(3),m(4))));
+
+log('addmRec ************');
+log(JSON.stringify(addmRec(m(3),m(4))));
+
+function liftm(f,operand) {
+	return function (arg1,arg2) {
+		if ( typeof arg1 === 'number') {
+			arg1 = m(arg1);
+		}
+		if ( typeof arg2 === 'number') {
+			arg2 = m(arg2);
+		}
+		return m(f(arg1.value,arg2.value),"("+arg1.source+operand+arg2.source+")")
+	}
+}
+
+
+log('liftm ************');
+const addmLike = liftm(add,"+");
+
+log(JSON.stringify(addmLike(m(3),m(4))))
+log(JSON.stringify(addmLike(5,6)))
+
+
+function expSimple(arg) {
+	return Array.isArray(arg) ?  arg[0](expSimple(arg[1]),expSimple(arg[2])) : arg;
+}
+
+const expArr = [mul,5,11];
+log('expSimple *************')
+log(expSimple(expArr));
+log(expSimple(42));
+
+const nestedArr = [
+			Math.sqrt,[
+				add,
+				[square,3],
+				[square,4]
+			]
+];
+
+
+log('exp *************');
+log(expSimple(nestedArr)); //5
+
+log('addg *************');
+log(addg(1)(2)(4)(8)()); //15
+log(addg(3)());
+
+function addg (acc) {
+	return function calc (num) {
+		if ( typeof num !== 'undefined') {
+			acc = acc + num
+			return calc
+		}
+		return acc;
+	}
+}
+
+
+log('liftg *************');
+log(liftg(mul)(1)(2)(4)(8)()); //64
+log(liftg(mul)(3)());
+
+function liftg (f) {
+	let acc;
+	return function calc (num) {
+		if ( typeof num !== 'undefined') {
+			if ( !acc ) {
+				acc = num;
+				return calc;
+			}
+			acc = f(acc,num)
+			return calc
+		}
+		return acc;
+	}
+}
+
+
+log('arrayg *************');
+log(arrayg(1)(2)(4)(8)()); //[1,2,4,8]
+log(arrayg(3)()); // [3]
+log(arrayg()); // []
+
+function arrayg (el) {
+	let arr = [];
+	//push(el);
+	function push (otherEl) {
+		if (typeof otherEl === 'undefined') {
+			return arr
+		}
+		arr.push(otherEl);
+		return push;
+	}
+	//return typeof el === "undefined" ? arr : push;
+	return push(el)
+}
+
+log('arrayReduce *************');
+log(arrayReduce(1)(2)(4)(8)()); //[1,2,4,8]
+log(arrayReduce(3)()); // [3]
+log(arrayReduce()); // []
+
+function arrayReduce (el) {
+	let arr = [];
+	return liftg(function(array,newEl){
+		array.push(newEl)
+		return array;
+	})([el])
+}
+
+
+log("continuize*********");
+sqrtContinuiezd = continuize(Math.sqrt);
+sqrtContinuiezd(log,81);
+
+function continuize (transform) {
+	return function (dest,el)	{
+		return dest(transform(el));
+	}
+}
+
+
+const funcs = [log,log,undefined,log];
+
+funcs.forEach(el => {
+	try {
+		el('worked');
+	} catch (err) {
+		if (err) {
+			log("err = ",JSON.stringify(err));
+		}
+	}	
+})
+
+
+
+
